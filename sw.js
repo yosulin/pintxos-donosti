@@ -1,4 +1,4 @@
-const CACHE_VERSION = "ruta-pintxo-v4";
+const CACHE_VERSION = "ruta-pintxo-v5";
 const CORE_ASSETS = [
   "./",
   "./index.html",
