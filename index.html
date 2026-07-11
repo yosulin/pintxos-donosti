@@ -17,10 +17,8 @@
 <body>
 
 <section class="hero">
-  <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema claro/oscuro">☾</button>
   <span class="hero-eyebrow">Donostia — guía de bares</span>
   <h1>LA RUTA<br>DEL PINTXO</h1>
-
   <div class="stat-row" id="stat-row"></div>
 </section>
 
@@ -32,29 +30,38 @@
   </div>
 </div>
 
-<div class="filter-group">
-  <span class="filter-label mono">Zona</span>
-  <nav class="filters" id="filters-zone"></nav>
-</div>
-<div class="filter-group">
-  <span class="filter-label mono">Tipo</span>
-  <nav class="filters" id="filters-type"></nav>
-</div>
-
-<div class="sort-row" id="sort-row">
-  <div class="sort-toggle" id="sort-toggle">
-    <button class="sort-btn" data-mode="prioridad" data-active="true">Prioridad</button>
-    <button class="sort-btn" data-mode="cercania" data-active="false">Cerca de mí</button>
-  </div>
-  <button class="surprise-btn" id="surprise-btn">🎲 Sorpréndeme</button>
-</div>
-<div class="sort-status" id="sort-status"></div>
-
 <main id="main"></main>
 
 <footer>
   Guía personal · edítala en <a href="https://github.com/yosulin/pintxos-donosti" target="_blank" rel="noopener">GitHub</a> · instálala en tu móvil para llevarla sin conexión
 </footer>
+
+<div class="sheet-backdrop hidden" id="sheet-backdrop"></div>
+<div class="sheet hidden" id="sheet">
+  <div class="sheet-header">
+    <span class="sheet-title" id="sheet-title"></span>
+    <button class="sheet-close" id="sheet-close" aria-label="Cerrar">✕</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<nav class="dock" id="dock">
+  <button class="dock-btn" id="dock-zone">
+    <span class="dock-icon">📍</span><span class="dock-label" id="dock-zone-label">Zona</span>
+  </button>
+  <button class="dock-btn" id="dock-type">
+    <span class="dock-icon">🍸</span><span class="dock-label" id="dock-type-label">Tipo</span>
+  </button>
+  <button class="dock-btn" id="dock-sort">
+    <span class="dock-icon" id="dock-sort-icon">⇅</span><span class="dock-label" id="dock-sort-label">Prioridad</span>
+  </button>
+  <button class="dock-btn" id="dock-surprise">
+    <span class="dock-icon">🎲</span><span class="dock-label">Sorpresa</span>
+  </button>
+  <button class="dock-btn" id="dock-theme">
+    <span class="dock-icon" id="dock-theme-icon">☾</span><span class="dock-label">Tema</span>
+  </button>
+</nav>
 
 <div class="toast" id="toast" aria-live="polite"></div>
 
