@@ -11,7 +11,8 @@ edita los JSON de `/data`, haz commit, y la web se actualiza sola (GitHub Pages)
 - El círculo de la izquierda marca un bar como "probado" (se guarda en el propio navegador).
 - "Cerca de mí" ordena cada zona por distancia, usando la ubicación del móvil.
 - "Sorpréndeme" abre al azar uno de los imprescindibles.
-- "Compartir" en cada tarjeta copia un enlace directo a ese bar (`#bar-id`).
+- "Compartir" en cada tarjeta abre WhatsApp con la info del bar (dirección, especialidades, enlace a Maps y a la guía) ya redactada.
+- Si no la tienes instalada, aparece un aviso para añadirla a la pantalla de inicio (prompt nativo en Android/Chrome, instrucciones manuales en iPhone).
 
 ## Estructura
 
