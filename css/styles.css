@@ -21,12 +21,7 @@ a{ color:inherit; }
 @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
 
 /* ---------- HERO ---------- */
-.hero{ position:relative; padding: 2.6rem 1.2rem 1.6rem; max-width:40rem; margin:0 auto; }
-.theme-toggle{
-  position:absolute; top:1.6rem; right:1.2rem; width:38px; height:38px; border-radius:50%;
-  border:1.5px solid var(--line); background:var(--card); color:var(--ink); font-size:1.05rem;
-  cursor:pointer; display:flex; align-items:center; justify-content:center;
-}
+.hero{ padding: 2.6rem 1.2rem 1.6rem; max-width:40rem; margin:0 auto; }
 .hero-eyebrow{
   font-family:'Space Mono', monospace; font-size:.8rem; letter-spacing:.05em;
   color:var(--red); display:block; margin-bottom:.7rem;
@@ -57,46 +52,45 @@ a{ color:inherit; }
 .install-dismiss{ border:none; background:transparent; color:var(--muted); font-size:1rem; cursor:pointer; padding:.2rem .3rem; }
 .install-dismiss:hover{ color:var(--ink); }
 
-/* ---------- FILTERS ---------- */
-.filter-group{ max-width:40rem; margin:1.2rem auto 0; padding:0 1.2rem; }
-.filter-group:first-of-type{ margin-top:1.6rem; }
-.filter-label{ font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); display:block; margin-bottom:.5rem; }
-.filters{ display:flex; flex-wrap:wrap; gap:.5rem; }
+/* ---------- FILTER CHIPS (used inside the sheet) ---------- */
 .chip{
   font-family:'Space Mono', monospace; font-size:.82rem;
-  padding:.5rem .9rem; border:1.5px solid var(--line); border-radius:6px; background:var(--card);
+  padding:.5rem .9rem; border:1.5px solid var(--line); border-radius:6px; background:var(--paper);
   color:var(--muted); cursor:pointer; white-space:nowrap; transition:.15s ease; display:flex; align-items:center; gap:.4rem;
 }
 .chip .count{ opacity:.65; font-size:.74rem; }
 .chip[data-active="true"]{ background:var(--ink); border-color:var(--ink); color:var(--paper); font-weight:700; }
 .chip:hover{ border-color:var(--ink); }
 
-/* ---------- SORT / SURPRISE ---------- */
-.sort-row{
-  max-width:40rem; margin:0 auto; padding:1.2rem 1.2rem 0; display:flex;
-  align-items:center; justify-content:space-between; gap:.8rem; flex-wrap:wrap;
+/* ---------- DOCK ---------- */
+.dock{
+  position:fixed; left:0; right:0; bottom:0; z-index:70; display:flex;
+  background:var(--card); border-top:1px solid var(--line);
+  padding:.45rem .3rem calc(.45rem + env(safe-area-inset-bottom));
 }
-.sort-toggle{ display:flex; border:1.5px solid var(--ink); border-radius:6px; overflow:hidden; }
-.sort-btn{
-  font-family:'Space Mono', monospace; font-size:.8rem; padding:.5rem .9rem;
-  border:none; background:var(--card); color:var(--ink); cursor:pointer;
+.dock-btn{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; gap:.15rem;
+  background:none; border:none; padding:.4rem .1rem; cursor:pointer; color:var(--muted); border-radius:8px;
 }
-.sort-btn + .sort-btn{ border-left:1.5px solid var(--ink); }
-.sort-btn[data-active="true"]{ background:var(--ink); color:var(--paper); font-weight:700; }
-.surprise-btn{
-  font-family:'Space Mono', monospace; font-size:.82rem; padding:.55rem 1rem;
-  border:1.5px solid var(--red); border-radius:6px; background:var(--card); color:var(--red);
-  cursor:pointer; font-weight:700;
+.dock-btn:active{ background:var(--paper); }
+.dock-btn.active{ color:var(--red); }
+.dock-icon{ font-size:1.2rem; line-height:1; }
+.dock-label{ font-family:'Space Mono', monospace; font-size:.6rem; text-transform:uppercase; letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+
+/* ---------- BOTTOM SHEET ---------- */
+.sheet-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.42); z-index:80; }
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:90; background:var(--card);
+  border-top:1.5px solid var(--line); border-radius:16px 16px 0 0;
+  padding:1.1rem 1.2rem calc(1.1rem + env(safe-area-inset-bottom)); max-height:60vh; overflow-y:auto;
 }
-.surprise-btn:hover{ background:var(--red); color:#fff; }
-.sort-status{
-  max-width:40rem; margin:0 auto; padding:0 1.2rem; font-family:'Space Mono', monospace;
-  font-size:.78rem; color:var(--red); min-height:0;
-}
-.sort-status:empty{ display:none; }
+.sheet-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; }
+.sheet-title{ font-family:'Space Mono', monospace; font-weight:700; font-size:1rem; text-transform:uppercase; letter-spacing:.04em; }
+.sheet-close{ border:none; background:var(--paper); color:var(--ink); width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:.95rem; }
+.sheet-body .filters{ display:flex; flex-wrap:wrap; gap:.55rem; }
 
 /* ---------- LIST / ZONE STRUCTURE ---------- */
-main{ max-width:40rem; margin:0 auto; padding:1.8rem 1.2rem 1rem; }
+main{ max-width:40rem; margin:0 auto; padding:1.8rem 1.2rem 6rem; }
 .zone-head{ display:flex; align-items:baseline; gap:.6rem; margin: 2.4rem 0 0; font-family:'Space Mono', monospace; }
 .zone-head:first-of-type{ margin-top:.4rem; }
 .zone-head .idx{ color:var(--zc); font-weight:700; }
