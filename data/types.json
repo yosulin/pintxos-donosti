@@ -1,0 +1,6 @@
+{
+  "pintxos": { "label": "Pintxos", "icon": "🍢" },
+  "vermut":  { "label": "Vermut",  "icon": "🍷" },
+  "gintoneria": { "label": "Gintonería", "icon": "🍸" },
+  "copas":   { "label": "Copas",   "icon": "🥂" }
+}
