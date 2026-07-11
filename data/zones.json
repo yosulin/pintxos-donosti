@@ -1,0 +1,5 @@
+{
+  "antiguo": { "label": "Parte Vieja", "color": "#ff5a36" },
+  "centro":  { "label": "Centro",      "color": "#c7d95e" },
+  "gros":    { "label": "Gros",        "color": "#f0b429" }
+}
