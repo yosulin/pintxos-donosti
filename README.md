@@ -15,8 +15,6 @@ data/
   zones.json         barrios: id, etiqueta y color — se toca poco
   tiers.json         etiquetas de prioridad (3/2/1) — se toca poco
   bars.json          ⭐ la lista de bares — aquí se añade casi todo
-  night.json         planes nocturnos por franja horaria
-  special.json        sitios "de capricho" fuera de la ruta normal (ej. Akelarre)
 manifest.json / sw.js   PWA (instalable, funciona offline)
 icons/                iconos de la app
 ```
@@ -50,11 +48,5 @@ Ejemplo mínimo:
 ## Añadir un barrio/zona nuevo
 
 Añade una entrada en `data/zones.json` con `label` y `color` (hex). Los filtros,
-el grid y los contadores se generan solos a partir de ese archivo — no hace
+la lista y los contadores se generan solos a partir de ese archivo — no hace
 falta tocar `js/app.js`.
-
-## Planes nocturnos y sitios especiales
-
-`night.json` es un array de franjas horarias, cada una con su lista de sitios.
-`special.json` es un array de tarjetas destacadas (hoy solo Akelarre) — puedes
-añadir más sitios "de capricho" del mismo modo.
