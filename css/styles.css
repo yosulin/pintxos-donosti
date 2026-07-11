@@ -35,18 +35,10 @@ a{ color:inherit; }
   font-family:'Space Mono', monospace; font-weight:700; font-size:clamp(2rem, 9vw, 2.7rem);
   line-height:1.12; margin:0; max-width:19rem;
 }
-.hero p.lede{ margin-top:1rem; color:var(--muted); font-size:1.05rem; line-height:1.55; max-width:32rem; }
 
-.stat-row{ display:flex; flex-wrap:wrap; gap:1.6rem; margin-top:1.6rem; padding-top:1.4rem; border-top:1px solid var(--line); }
+.stat-row{ display:flex; flex-wrap:wrap; gap:1.6rem; margin-top:1.8rem; padding-top:1.4rem; border-top:1px solid var(--line); }
 .stat .n{ font-family:'Space Mono', monospace; font-size:1.7rem; font-weight:700; display:block; line-height:1; }
 .stat .l{ font-family:'Space Mono', monospace; font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-
-.rule-card{
-  margin-top:1.6rem; border-left:3px solid var(--red);
-  background:var(--card); border-radius:0 8px 8px 0; padding:1.1rem 1.2rem; border:1px solid var(--line); border-left:3px solid var(--red);
-}
-.rule-card .k{ font-family:'Space Mono', monospace; font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; color:var(--red); font-weight:700; }
-.rule-card p{ margin:.5rem 0 0; color:var(--ink); font-size:1rem; line-height:1.55; }
 
 /* ---------- INSTALL BANNER ---------- */
 .install-banner{
