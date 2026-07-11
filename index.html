@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La Ruta del Pintxo — Donostia</title>
+<meta name="description" content="Guía personal de bares de pintxos en San Sebastián, por orden de prioridad y especialidades.">
+<meta name="theme-color" content="#1c1712">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;0,9..144,900;1,9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --bg:#1c1712; --bg-elev:#262019; --paper:#f3ead9; --ink:#201a14;
+    --red:#b8382a; --olive:#74803f; --brass:#c99a3d; --muted:#a89a86;
+    --line: rgba(201,154,61,.28);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--paper);
+    font-family:'Work Sans', sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Fraunces', serif; margin:0; letter-spacing:-0.01em;}
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  a{ color:inherit; }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    position:relative; padding: 4.2rem 1.4rem 3.4rem; overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 15% -10%, rgba(184,56,42,.18), transparent 60%),
+      radial-gradient(120% 90% at 100% 0%, rgba(116,128,63,.16), transparent 55%),
+      var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  .hero-eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; letter-spacing:.18em;
+    text-transform:uppercase; color:var(--brass); margin-bottom:1rem; display:block;
+  }
+  .hero h1{
+    font-size: clamp(2.4rem, 8vw, 4.2rem); font-weight:900; line-height:.98;
+    color:var(--paper);
+  }
+  .hero h1 em{ font-style:italic; font-weight:600; color:var(--brass); }
+  .hero p.lede{
+    max-width:38rem; margin-top:1.1rem; color:var(--muted); font-size:1.02rem; line-height:1.55;
+  }
+  .ticket{
+    margin-top:2rem; max-width:30rem; background:var(--paper); color:var(--ink);
+    padding:1.3rem 1.4rem; position:relative; border-radius:2px;
+    box-shadow: 0 18px 34px -18px rgba(0,0,0,.55);
+    transform: rotate(-1.2deg);
+  }
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; left:0; right:0; height:10px; background:var(--bg);
+    -webkit-mask: radial-gradient(circle at 8px 5px, transparent 6px, black 6.5px) repeat-x; mask: radial-gradient(circle at 8px 5px, transparent 6px, black 6.5px) repeat-x;
+    -webkit-mask-size: 16px 10px; mask-size:16px 10px;
+  }
+  .ticket::before{ top:-1px; }
+  .ticket::after{ bottom:-1px; transform:rotate(180deg); }
+  .ticket .k{ font-family:'IBM Plex Mono', monospace; font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:var(--red); }
+  .ticket p{ margin:.4rem 0 0; font-size:.92rem; line-height:1.5; }
+
+  /* ---------- NAV / FILTERS ---------- */
+  .filters{
+    position:sticky; top:0; z-index:40; background:rgba(28,23,18,.92); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line); padding:.8rem 1rem;
+    display:flex; gap:.5rem; overflow-x:auto; scrollbar-width:none;
+  }
+  .filters::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:0 0 auto; font-family:'IBM Plex Mono', monospace; font-size:.76rem; letter-spacing:.03em;
+    padding:.5rem .9rem; border:1px solid var(--line); border-radius:999px; background:transparent;
+    color:var(--muted); cursor:pointer; white-space:nowrap; transition:.15s ease;
+  }
+  .chip[data-active="true"]{ background:var(--brass); border-color:var(--brass); color:var(--ink); font-weight:600; }
+  .chip:hover{ border-color:var(--brass); color:var(--paper); }
+
+  /* ---------- MAP ---------- */
+  #map{ height:min(58vh, 460px); width:100%; filter: saturate(.85) contrast(1.02); border-bottom:1px solid var(--line); }
+  .leaflet-popup-content-wrapper{ background:var(--paper); color:var(--ink); border-radius:3px; }
+  .leaflet-popup-tip{ background:var(--paper); }
+  .popup-name{ font-family:'Fraunces',serif; font-weight:700; font-size:.98rem; margin:0 0 .2rem; }
+  .popup-zone{ font-family:'IBM Plex Mono',monospace; font-size:.66rem; text-transform:uppercase; letter-spacing:.08em; color:var(--red); }
+  .popup-link{ display:inline-block; margin-top:.35rem; font-size:.78rem; text-decoration:underline; color:var(--olive); }
+
+  /* ---------- SECTIONS / LIST ---------- */
+  main{ max-width:52rem; margin:0 auto; padding:2.6rem 1.2rem 1rem; }
+  .zone-head{ display:flex; align-items:baseline; gap:.7rem; margin: 2.6rem 0 .3rem; }
+  .zone-head:first-of-type{ margin-top:0; }
+  .zone-head h2{ font-size:1.5rem; font-weight:700; }
+  .zone-count{ font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--muted); }
+  .zone-rule{ height:1px; background:var(--line); margin:.6rem 0 1.3rem; }
+  .zone-note{ color:var(--muted); font-size:.88rem; margin:-0.4rem 0 1.2rem; max-width:38rem; line-height:1.5; }
+
+  .bar-card{
+    display:grid; grid-template-columns:34px 1fr; gap:.9rem;
+    padding:1.1rem 0; border-bottom:1px solid var(--line);
+  }
+  .tally{ display:flex; flex-direction:column; align-items:center; gap:4px; padding-top:.15rem; }
+  .pick{ width:3px; height:26px; border-radius:2px; position:relative; }
+  .pick::before{
+    content:""; position:absolute; top:-5px; left:50%; transform:translateX(-50%);
+    width:9px; height:9px; border-radius:50%;
+  }
+  .pick.red{ background:var(--red); } .pick.red::before{ background:var(--red); }
+  .pick.olive{ background:var(--olive); } .pick.olive::before{ background:var(--olive); }
+  .pick.brass{ background:var(--brass); } .pick.brass::before{ background:var(--brass); }
+
+  .bar-top{ display:flex; justify-content:space-between; align-items:baseline; gap:.6rem; flex-wrap:wrap; }
+  .bar-name{ font-size:1.14rem; font-weight:700; }
+  .tier-label{ font-family:'IBM Plex Mono',monospace; font-size:.66rem; text-transform:uppercase; letter-spacing:.09em; color:var(--brass); white-space:nowrap; }
+  .bar-meta{ font-family:'IBM Plex Mono',monospace; font-size:.74rem; color:var(--muted); margin-top:.25rem; line-height:1.5; }
+  .bar-note{ font-style:italic; color:var(--brass); font-size:.86rem; margin-top:.45rem; }
+  .tags{ margin-top:.55rem; display:flex; flex-wrap:wrap; gap:.4rem; }
+  .tag{ font-size:.76rem; padding:.28rem .6rem; border-radius:999px; border:1px solid var(--line); color:var(--paper); }
+  .bar-actions{ margin-top:.6rem; }
+  .maps-link{ font-family:'IBM Plex Mono',monospace; font-size:.74rem; color:var(--olive); text-decoration:underline; }
+
+  /* ---------- NIGHT PLANS ---------- */
+  .franjas{ display:grid; gap:1rem; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); margin-top:1rem; }
+  .franja-card{ background:var(--bg-elev); border:1px solid var(--line); border-radius:6px; padding:1.1rem 1.2rem; }
+  .franja-card h3{ font-size:1.02rem; font-weight:700; }
+  .franja-time{ font-family:'IBM Plex Mono',monospace; font-size:.72rem; color:var(--brass); display:block; margin-top:.2rem; }
+  .franja-list{ margin:.7rem 0 0; padding:0; list-style:none; }
+  .franja-list li{ font-size:.88rem; padding:.4rem 0; border-top:1px solid var(--line); }
+  .franja-list li:first-child{ border-top:none; }
+  .franja-list a{ text-decoration:underline; color:var(--paper); }
+
+  /* ---------- SPECIAL / AKELARRE ---------- */
+  .special{
+    margin: 2.6rem 0 3rem; border:1px solid var(--brass); border-radius:8px; padding:1.6rem;
+    background: linear-gradient(160deg, rgba(201,154,61,.10), transparent 60%);
+  }
+  .special .k{ font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:var(--brass); }
+  .special h2{ font-size:1.6rem; margin-top:.3rem; }
+  .special p{ color:var(--muted); font-size:.92rem; line-height:1.6; max-width:34rem; margin-top:.5rem; }
+
+  footer{ text-align:center; padding:2.2rem 1rem 3rem; color:var(--muted); font-size:.78rem; font-family:'IBM Plex Mono',monospace; }
+  footer a{ color:var(--brass); text-decoration:underline; }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <span class="hero-eyebrow">Donostia / San Sebastián · pintxos por orden de prioridad</span>
+  <h1>La ruta<br><em>del pintxo</em></h1>
+  <p class="lede">Mis bares favoritos de la Parte Vieja, Centro y Gros — con las especialidades que pido siempre. Toca un bar en el mapa o revisa la lista por barrios.</p>
+  <div class="ticket">
+    <span class="k">Regla de oro</span>
+    <p>En cualquier barra, empieza con una <strong>gilda</strong> — el pintxo por excelencia — acompañada de un buen txakoli. O, si lo prefieres, una tortilla de patatas.</p>
+  </div>
+</section>
+
+<nav class="filters" id="filters"></nav>
+
+<div id="map"></div>
+
+<main id="list"></main>
+
+<footer>
+  Guía personal · datos de ubicación vía Google Places · instálala en tu móvil para llevarla sin conexión
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------------- DATA ---------------- */
+const ZONES = {
+  antiguo: { label: "Parte Vieja", color: "#b8382a", pickClass: "red" },
+  centro:  { label: "Centro",      color: "#74803f", pickClass: "olive" },
+  gros:    { label: "Gros",        color: "#c99a3d", pickClass: "brass" },
+};
+
+const TIER_LABEL = { 3: "Imprescindible", 2: "Recomendado", 1: "Si hay tiempo" };
+
+const BARS = [
+  // ---- PARTE VIEJA ----
+  { zone:"antiguo", tier:3, name:"Bar Txepetxa", addr:"Arrandegi Kalea, 5", hours:"Mar–sáb 12:00–15:00 y 19:00–23:00 · cerrado dom–lun",
+    tags:["Anchoas (las mejores del mundo)","Jardinera","Centolla","Foie con compota de manzana"],
+    note:"Maridar con txakoli sin falta", lat:43.3237381, lng:-1.9840577, placeId:"ChIJfQW8xU2lUQ0RRd5xky_9uBY" },
+  { zone:"antiguo", tier:3, name:"Casa Urola", addr:"Fermín Calbetón, 20", hours:"Lun, jue–dom 12:00–15:15 y 19:00–23:15 · cerrado mar–mié",
+    tags:["Brocheta de pulpo y panceta","Vieira con almendras y café","Taco de solomillo / txuleta","Foie fresco","Alcachofas"],
+    note:"Txakoli Etxaniz y buenos tintos", lat:43.3233372, lng:-1.9844592, placeId:"ChIJyanHmE2lUQ0Rcnh9u-v7n3k" },
+  { zone:"antiguo", tier:3, name:"Bar Tamboril", addr:"Plaza de la Constitución", hours:"Mar–sáb 12:30–15:30 y 19:00–22:30 · cerrado dom–lun",
+    tags:["Bola de carne","Champiñones en salsa","Anchoa rebozada (temporada)","Ensaladilla rusa"], lat:43.3235482, lng:-1.9843337, placeId:"ChIJ4WXkxk2lUQ0RQY1XGfiAeq8" },
+  { zone:"antiguo", tier:3, name:"Bar Nestor", addr:"Arrandegi Kalea, 11", hours:"Mar–sáb 12:30–15:00 y 19:30–22:00 · cerrado dom–lun",
+    tags:["Ensalada de tomate","Txuletón","Pimientos verdes asados"], note:"Reserva la tortilla en la ventanilla, antes de abrir",
+    lat:43.323872, lng:-1.983707, placeId:"ChIJfQW8xU2lUQ0Rn4b6SEEWmLY" },
+  { zone:"antiguo", tier:2, name:"Borda Berri", addr:"Fermín Calbetón, 12", hours:"Mié–sáb 12:30–15:15 y 19:30–22:30, mar solo noche · cerrado lun",
+    tags:["Falso risotto de champiñones","Papada al vino tinto","Pintxo de kebab","Carrilleras"], lat:43.3234901, lng:-1.9838915, placeId:"ChIJaxqh3E2lUQ0R9x--5PL9Erg" },
+  { zone:"antiguo", tier:2, name:"Casa Gandarias", addr:"31 de Agosto, 23", hours:"Todos los días 11:00–00:00",
+    tags:["Taco de solomillo con pimiento","Bacalao al pil pil","Brochetas a la parrilla"], lat:43.3240228, lng:-1.9857835, placeId:"ChIJtR9nSkylUQ0RqDxIyuEHftw" },
+  { zone:"antiguo", tier:2, name:"Bar Martínez", addr:"31 de Agosto, 13", hours:"Cerrado jueves · resto variable",
+    tags:["Calabacín relleno","Alcachofas con bacon","Anchoas rebozadas","Hongos y setas"], lat:43.3242257, lng:-1.9852243, placeId:"ChIJk44qs02lUQ0RLJWw1d7Rm9I" },
+  { zone:"antiguo", tier:2, name:"Bar La Viña", addr:"31 de Agosto, 3", hours:"Mar–dom 10:30–16:00 y 19:00–23:00 · cerrado lun",
+    tags:["Tarta de queso, con un chorrito de Pedro Ximénez"], note:"El postre imprescindible de Donosti", lat:43.3243861, lng:-1.9847944, placeId:"ChIJtR9nSkylUQ0Ry9r3f_iwXUQ" },
+  { zone:"antiguo", tier:2, name:"Atari Gastroteka", addr:"Calle Mayor, 18, frente a la Basílica", hours:"Lun, mié–dom 12:30–23:00 (vie–sáb hasta 2:00) · cerrado mar",
+    tags:["Torrija","Carrillera al vino tinto","Huevo a baja temperatura con hongos"], lat:43.3237078, lng:-1.9864426, placeId:"ChIJoQzyEE2lUQ0R9LFGEedT4Xk" },
+  { zone:"antiguo", tier:2, name:"Bar La Cepa", addr:"31 de Agosto, 7", hours:"Todos los días 11:00–23:00",
+    tags:["Brocheta de gambas o pulpo","Brocheta de solomillo","Mixtos de jamón / york / ibérico","Queso azul"], lat:43.3243034, lng:-1.9850321, placeId:"ChIJMevYsk2lUQ0R7ABFE3h8DBQ" },
+  { zone:"antiguo", tier:2, name:"Bar Haizea", addr:"Calle Aldamar, 8", hours:"Lun–sáb 7:30–15:30 y 19:00–23:00 · cerrado dom",
+    tags:["Brick de bacalao","Vieira"], lat:43.3234426, lng:-1.9821689, placeId:"ChIJBSWSa06lUQ0R2LPYfnoUwTA" },
+  { zone:"antiguo", tier:2, name:"Zazpi", addr:"Plaza Zuloaga, 1", hours:"Mar–dom 10:00–20:00 / 23:00 · cerrado lun",
+    tags:["Pintxos de autor junto al museo San Telmo"], lat:43.3253631, lng:-1.9847454, placeId:"ChIJAbrs9lClUQ0RKB-88hhYfkI" },
+  { zone:"antiguo", tier:1, name:"Bar Ganbara", addr:"San Jerónimo, 21", hours:"Mar–sáb 12:30–15:30 y 19:00–22:30 · cerrado dom–lun",
+    tags:["Hojaldre de txistorra"], lat:43.3234339, lng:-1.9855011, placeId:"ChIJxU5xoU2lUQ0RTkXZGzyoIPo" },
+  { zone:"antiguo", tier:1, name:"La Cuchara de San Telmo", addr:"Santa Korda, 4 (31 de Agosto)", hours:"Mar–dom 12:00–16:00 y 19:00–23:00 · cerrado lun",
+    tags:["Pulpo de roca","Risotto falso"], lat:43.3245016, lng:-1.9853227, placeId:"ChIJ7WeBrE2lUQ0R8b8U5UpHiQE" },
+  { zone:"antiguo", tier:1, name:"Bar Goiz Argi", addr:"Fermín Calbetón, 4", hours:"Todos los días 11:30–16:00 y 18:30–23:00",
+    tags:["Brocheta de gambas"], lat:43.3236111, lng:-1.9833333, placeId:"ChIJISHh2E2lUQ0RE2nJzJgbhmU" },
+  { zone:"antiguo", tier:1, name:"Bar Astelena", addr:"Plaza de la Constitución (Euskal Herria, 3)", hours:"Horario partido · cerrado lunes",
+    tags:["Clásico de la plaza"], lat:43.3242241, lng:-1.9824202, placeId:"ChIJ19jyY06lUQ0RlT7izQh1XdU" },
+  { zone:"antiguo", tier:1, name:"Paco Bueno", addr:"Calle Mayor, 6", hours:"11:00–15:00 y 18:00–22:00 · cerrado viernes",
+    tags:["Gambas y calamares rebozados — un clásico"], lat:43.3226361, lng:-1.9856750, placeId:"ChIJjYLId02lUQ0RAGMrmbG4_y0" },
+
+  // ---- CENTRO ----
+  { zone:"centro", tier:3, name:"Bar Antonio", addr:"Calle Bergara, 3", hours:"Lun–sáb 9:00–23:00 · cerrado dom",
+    tags:["Tortilla de patatas","Ensaladilla","Ravioli de langostino","Brocheta de pulpo o langostinos en vinagreta","Pintxo de cordero","Pintxo Arzak","Crujiente de rabo de buey","Pintxo Igeldo"],
+    note:"El mítico — mejor que el del Boulevard. Godello blanco buenísimo", lat:43.3197231, lng:-1.9806282, placeId:"ChIJ6T6eVVClUQ0Rr67NXUZTqSw" },
+  { zone:"centro", tier:1, name:"Kata4", addr:"Junto al Hotel María Cristina", hours:"Consultar",
+    tags:["Terraza agradable","Buena materia prima"], note:"No es de mis favoritos, pero cumple",
+    lat:43.3218078, lng:-1.9801059, search:"Kata4 San Sebastian" },
+
+  // ---- GROS ----
+  { zone:"gros", tier:3, name:"El Gure Txoko", addr:"Calle Usandizaga, 5", hours:"Mar–sáb 12:00–16:00 y 19:00–23:30, dom solo mediodía · cerrado lun",
+    tags:["Bocatita de merluza con alioli y tinta","Bocatita de rabas","Huevo a baja temperatura con hongos","Cangreburger"], lat:43.3235547, lng:-1.9780336, placeId:"ChIJR_PLZkWlUQ0RcUk-13HEmAo" },
+  { zone:"gros", tier:2, name:"La Bodeguilla Donostiarra", addr:"Peña y Goñi, 13", hours:"Lun–vie 9:30–23:00, sáb hasta 23:30 · cerrado dom",
+    tags:["Merluza rebozada","Cabeza de jabalí en vinagreta","Mini tortilla individual","Mini de piparra, antxoa y bonito","Ensaladilla rusa"], lat:43.3232002, lng:-1.9774432, placeId:"ChIJ6XYVQkWlUQ0RrKLaNKQolCI" },
+];
+
+const NIGHT = [
+  { franja:"Tardeo con baile", time:"18:00 – 22:00", items:[
+      {name:"GU Náutico", lat:43.3212792, lng:-1.9864212, placeId:"ChIJMSI8kFKlUQ0RbLQONR4J7n8"},
+      {name:"Bar El Cine (Gros)", lat:43.323773, lng:-1.9778856, placeId:"ChIJ5__CetalUQ0Ro7Whga3um9E"},
+      {name:"Bar Teorema (terraza)", lat:43.3227931, lng:-1.9768801, placeId:"ChIJg9NoN0WlUQ0Rz-EfNZwhKMU"},
+  ]},
+  { franja:"Noche por lo viejo, baile y copas", time:"hasta las 3:00", items:[
+      {name:"Bar Coté", lat:43.3228284, lng:-1.9863172, placeId:"ChIJs_gObk2lUQ0RLbxMysET1IE"},
+      {name:"Bar White Tara", lat:43.3236294, lng:-1.9854737, placeId:"ChIJrbTJpU2lUQ0Rvx1dj98oZ3k"},
+      {name:"Bar Txurrut", lat:43.3237316, lng:-1.9845952, placeId:"ChIJwaQ6uE2lUQ0RFFAb_UuebLE"},
+      {name:"Bar Orbela", lat:43.3227866, lng:-1.9852533, placeId:"ChIJeQ9Jmk2lUQ0RE6dWj1CbjWM"},
+      {name:"Bar Teorema (Gros)", lat:43.3227931, lng:-1.9768801, placeId:"ChIJg9NoN0WlUQ0Rz-EfNZwhKMU"},
+  ]},
+  { franja:"Para los más valientes", time:"hasta las 6:00", items:[
+      {name:"¡Be! Club (Paseo Salamanca)", lat:43.3238172, lng:-1.9812586, placeId:"ChIJ0e08Tk6lUQ0RdI7dH3HpMEo"},
+      {name:"Bataplán (La Concha)", lat:43.3154833, lng:-1.9888049, placeId:"ChIJx7-hPKu6UQ0RYp0Qk9j6u_Q"},
+  ]},
+];
+
+const AKELARRE = { name:"Restaurante Akelarre", addr:"Padre Orkolaga, 56, Igeldo", lat:43.307785, lng:-2.0431364, placeId:"ChIJXdMPlZ6wUQ0RgkKFNtNEFXE" };
+
+/* ---------------- HELPERS ---------------- */
+function mapsUrl(item){
+  if (item.placeId) return `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}&query_place_id=${item.placeId}`;
+  if (item.search) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.search)}`;
+  return `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}`;
+}
+function pickHTML(zoneKey, tier){
+  const cls = ZONES[zoneKey] ? ZONES[zoneKey].pickClass : "brass";
+  let out = "";
+  for (let i=0;i<tier;i++) out += `<span class="pick ${cls}"></span>`;
+  return out;
+}
+
+/* ---------------- RENDER LIST ---------------- */
+const listEl = document.getElementById("list");
+
+function renderList(filter){
+  listEl.innerHTML = "";
+  const zoneKeys = Object.keys(ZONES);
+  zoneKeys.forEach(zoneKey => {
+    if (filter !== "todos" && filter !== zoneKey) return;
+    const bars = BARS.filter(b => b.zone === zoneKey).sort((a,b)=>b.tier-a.tier);
+    if (!bars.length) return;
+    const section = document.createElement("section");
+    section.innerHTML = `
+      <div class="zone-head">
+        <h2>${ZONES[zoneKey].label}</h2>
+        <span class="zone-count mono">${bars.length} bares</span>
+      </div>
+      <div class="zone-rule"></div>
+    `;
+    bars.forEach(b => {
+      const card = document.createElement("div");
+      card.className = "bar-card";
+      card.innerHTML = `
+        <div class="tally">${pickHTML(zoneKey, b.tier)}</div>
+        <div>
+          <div class="bar-top">
+            <span class="bar-name">${b.name}</span>
+            <span class="tier-label">${TIER_LABEL[b.tier]}</span>
+          </div>
+          <div class="bar-meta">${b.addr} · ${b.hours}</div>
+          ${b.note ? `<div class="bar-note">${b.note}</div>` : ""}
+          <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+          <div class="bar-actions"><a class="maps-link" href="${mapsUrl(b)}" target="_blank" rel="noopener">Ver en Google Maps →</a></div>
+        </div>
+      `;
+      section.appendChild(card);
+    });
+    listEl.appendChild(section);
+  });
+
+  if (filter === "todos" || filter === "noche"){
+    const section = document.createElement("section");
+    section.innerHTML = `
+      <div class="zone-head"><h2>Planes para salir</h2></div>
+      <div class="zone-rule"></div>
+      <div class="franjas"></div>
+    `;
+    const grid = section.querySelector(".franjas");
+    NIGHT.forEach(f => {
+      const card = document.createElement("div");
+      card.className = "franja-card";
+      card.innerHTML = `
+        <h3>${f.franja}</h3><span class="franja-time mono">${f.time}</span>
+        <ul class="franja-list">${f.items.map(i=>`<li><a href="${mapsUrl(i)}" target="_blank" rel="noopener">${i.name}</a></li>`).join("")}</ul>
+      `;
+      grid.appendChild(card);
+    });
+    listEl.appendChild(section);
+  }
+
+  if (filter === "todos" || filter === "especial"){
+    const special = document.createElement("div");
+    special.className = "special";
+    special.innerHTML = `
+      <span class="k">Para tomar algo en un sitio único (caro)</span>
+      <h2>${AKELARRE.name}</h2>
+      <p>La terraza panorámica sobre el mar, en Igeldo — exclusiva y con vistas inmejorables. Ideal para un capricho, no para el día a día de pintxos.</p>
+      <a class="maps-link" href="${mapsUrl(AKELARRE)}" target="_blank" rel="noopener">Ver en Google Maps →</a>
+    `;
+    listEl.appendChild(special);
+  }
+}
+
+/* ---------------- FILTERS ---------------- */
+const FILTER_OPTIONS = [
+  { key:"todos", label:"Todos" },
+  { key:"antiguo", label:"Parte Vieja" },
+  { key:"centro", label:"Centro" },
+  { key:"gros", label:"Gros" },
+  { key:"noche", label:"Planes nocturnos" },
+  { key:"especial", label:"Especial" },
+];
+const filtersEl = document.getElementById("filters");
+let currentFilter = "todos";
+
+FILTER_OPTIONS.forEach(opt => {
+  const btn = document.createElement("button");
+  btn.className = "chip";
+  btn.textContent = opt.label;
+  btn.dataset.active = opt.key === "todos" ? "true" : "false";
+  btn.addEventListener("click", () => {
+    currentFilter = opt.key;
+    [...filtersEl.children].forEach(c => c.dataset.active = "false");
+    btn.dataset.active = "true";
+    renderList(currentFilter);
+    updateMapMarkers(currentFilter);
+  });
+  filtersEl.appendChild(btn);
+});
+
+/* ---------------- MAP ---------------- */
+const map = L.map("map", { scrollWheelZoom:false }).setView([43.3222, -1.9820], 14.4);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '&copy; OpenStreetMap',
+  maxZoom: 19
+}).addTo(map);
+
+function dotIcon(color){
+  return L.divIcon({
+    className: "",
+    html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #1c1712;box-shadow:0 0 0 2px ${color}55;"></div>`,
+    iconSize:[14,14], iconAnchor:[7,7]
+  });
+}
+
+let markerLayer = L.layerGroup().addTo(map);
+
+function updateMapMarkers(filter){
+  markerLayer.clearLayers();
+  const addMarker = (item, color, zoneLabel) => {
+    const m = L.marker([item.lat, item.lng], { icon: dotIcon(color) });
+    m.bindPopup(`
+      <div class="popup-zone">${zoneLabel}</div>
+      <p class="popup-name">${item.name}</p>
+      <a class="popup-link" href="${mapsUrl(item)}" target="_blank" rel="noopener">Abrir en Google Maps →</a>
+    `);
+    markerLayer.addLayer(m);
+  };
+
+  BARS.forEach(b => {
+    if (filter !== "todos" && filter !== b.zone) return;
+    addMarker(b, ZONES[b.zone].color, ZONES[b.zone].label);
+  });
+
+  if (filter === "todos" || filter === "noche"){
+    NIGHT.forEach(f => f.items.forEach(i => addMarker(i, "#a89a86", "Plan nocturno")));
+  }
+  if (filter === "todos" || filter === "especial"){
+    addMarker(AKELARRE, "#c99a3d", "Especial");
+  }
+}
+
+/* ---------------- INIT ---------------- */
+renderList(currentFilter);
+updateMapMarkers(currentFilter);
+
+/* ---------------- PWA / SERVICE WORKER ---------------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
