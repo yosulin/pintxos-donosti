@@ -5,6 +5,14 @@ edita los JSON de `/data`, haz commit, y la web se actualiza sola (GitHub Pages)
 
 **Live:** https://yosulin.github.io/pintxos-donosti/
 
+## Interacción
+
+- Cada bar es una tarjeta acordeón: toca el encabezado para ver dirección, horario, nota y el enlace a Maps.
+- El círculo de la izquierda marca un bar como "probado" (se guarda en el propio navegador).
+- "Cerca de mí" ordena cada zona por distancia, usando la ubicación del móvil.
+- "Sorpréndeme" abre al azar uno de los imprescindibles.
+- "Compartir" en cada tarjeta copia un enlace directo a ese bar (`#bar-id`).
+
 ## Estructura
 
 ```
