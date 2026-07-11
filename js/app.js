@@ -38,6 +38,23 @@ function saveVisited(){
   localStorage.setItem(VISITED_KEY, JSON.stringify([...state.visited]));
 }
 
+function buildShareText(b, zoneLabel){
+  const lines = [
+    `📍 ${b.name} — ${zoneLabel}`,
+    b.addr + (b.hours ? ` · ${b.hours}` : ""),
+  ];
+  if (b.tags && b.tags.length) lines.push(`🍢 ${b.tags.join(", ")}`);
+  if (b.note) lines.push(b.note);
+  lines.push(`Mapa: ${mapsUrl(b)}`);
+  lines.push(`Guía: ${location.origin}${location.pathname}#bar-${b.id}`);
+  return lines.join("\n");
+}
+
+function shareToWhatsapp(b, zoneLabel){
+  const text = buildShareText(b, zoneLabel);
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+}
+
 let toastTimer = null;
 function toast(msg){
   const el = document.getElementById("toast");
@@ -124,12 +141,12 @@ function renderList(){
       <div class="bar-list"></div>
     `;
     const list = section.querySelector(".bar-list");
-    zoneBars.forEach(b => list.appendChild(renderBar(b, zones[zoneKey].color, tiers)));
+    zoneBars.forEach(b => list.appendChild(renderBar(b, zones[zoneKey].color, tiers, zones[zoneKey].label)));
     main.appendChild(section);
   });
 }
 
-function renderBar(b, color, tiers){
+function renderBar(b, color, tiers, zoneLabel){
   const isExpanded = state.expanded.has(b.id);
   const isVisited = state.visited.has(b.id);
   const distText = (state.userLoc && b._dist != null) ? formatDistance(b._dist) : null;
@@ -155,7 +172,7 @@ function renderBar(b, color, tiers){
       <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
       <div class="bar-actions">
         <a class="maps-link" href="${mapsUrl(b)}" target="_blank" rel="noopener">Maps ↗</a>
-        <button class="share-btn" type="button">Compartir</button>
+        <button class="share-btn" type="button">WhatsApp ↗</button>
       </div>
     </div></div></div>
   `;
@@ -180,12 +197,7 @@ function renderBar(b, color, tiers){
 
   el.querySelector(".share-btn").addEventListener("click", (e) => {
     e.stopPropagation();
-    const url = `${location.origin}${location.pathname}#bar-${b.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => toast("Enlace copiado")).catch(() => toast(url));
-    } else {
-      toast(url);
-    }
+    shareToWhatsapp(b, zoneLabel);
   });
 
   return el;
@@ -273,11 +285,62 @@ function render(){
   renderList();
 }
 
+/* ---------------- INSTALL PROMPT ---------------- */
+const INSTALL_DISMISSED_KEY = "pintxos-install-dismissed";
+let deferredInstallPrompt = null;
+
+function isStandalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function initInstallBanner(){
+  const banner = document.getElementById("install-banner");
+  const btn = document.getElementById("install-btn");
+  const dismiss = document.getElementById("install-dismiss");
+  const text = document.getElementById("install-text");
+
+  if (isStandalone() || localStorage.getItem(INSTALL_DISMISSED_KEY) === "true") return;
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+  dismiss.addEventListener("click", () => {
+    banner.classList.add("hidden");
+    localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+  });
+
+  if (isIOS) {
+    text.textContent = "Instala esta guía en tu iPhone: toca compartir ⬆️ y luego \"Añadir a pantalla de inicio\".";
+    banner.classList.remove("hidden");
+    return;
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    btn.classList.remove("hidden");
+    banner.classList.remove("hidden");
+  });
+
+  btn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    banner.classList.add("hidden");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    banner.classList.add("hidden");
+    localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+  });
+}
+
 (async function init(){
   DATA = await loadData();
   openDeepLink();
   render();
   initSortControls();
+  initInstallBanner();
   scrollToDeepLink();
 })();
 
