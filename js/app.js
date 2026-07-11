@@ -67,7 +67,7 @@ async function loadData(){
   return Object.fromEntries(entries);
 }
 
-/* ---------------- STATS / FILTERS ---------------- */
+/* ---------------- STATS ---------------- */
 function renderStats(){
   const { zones, bars } = DATA;
   const row = document.getElementById("stat-row");
@@ -79,51 +79,77 @@ function renderStats(){
   row.innerHTML = stats.map(s => `<div class="stat"><span class="n">${s.n}</span><span class="l">${s.l}</span></div>`).join("");
 }
 
+/* ---------------- FILTER OPTIONS ---------------- */
 function visibleBarsFor(dimension){
-  // bars matching the *other* active filter, used to compute counts per chip
   return DATA.bars.filter(b => {
     const zoneOk = dimension === "zone" ? true : (state.zoneFilter === "todos" || b.zone === state.zoneFilter);
     const typeOk = dimension === "type" ? true : (state.typeFilter === "todos" || b.type === state.typeFilter);
     return zoneOk && typeOk;
   });
 }
-
-function renderZoneFilters(){
+function zoneOptions(){
   const { zones } = DATA;
-  const el = document.getElementById("filters-zone");
   const pool = visibleBarsFor("zone");
-  const options = [
+  return [
     { key:"todos", label:"Todos", count: pool.length },
     ...Object.keys(zones).map(k => ({ key:k, label:zones[k].label, count: pool.filter(b=>b.zone===k).length })),
   ];
-  el.innerHTML = "";
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "chip";
-    btn.dataset.active = state.zoneFilter === opt.key ? "true" : "false";
-    btn.innerHTML = `${opt.label} <span class="count">${opt.count}</span>`;
-    btn.addEventListener("click", () => { state.zoneFilter = opt.key; render(); });
-    el.appendChild(btn);
-  });
 }
-
-function renderTypeFilters(){
+function typeOptions(){
   const { types } = DATA;
-  const el = document.getElementById("filters-type");
   const pool = visibleBarsFor("type");
-  const options = [
+  return [
     { key:"todos", label:"Todos", count: pool.length },
     ...Object.keys(types).map(k => ({ key:k, label:`${types[k].icon} ${types[k].label}`, count: pool.filter(b=>b.type===k).length })),
   ];
-  el.innerHTML = "";
+}
+
+/* ---------------- BOTTOM SHEET ---------------- */
+function buildChipRow(options, activeKey, onSelect){
+  const wrap = document.createElement("div");
+  wrap.className = "filters";
   options.forEach(opt => {
     const btn = document.createElement("button");
     btn.className = "chip";
-    btn.dataset.active = state.typeFilter === opt.key ? "true" : "false";
+    btn.dataset.active = activeKey === opt.key ? "true" : "false";
     btn.innerHTML = `${opt.label} <span class="count">${opt.count}</span>`;
-    btn.addEventListener("click", () => { state.typeFilter = opt.key; render(); });
-    el.appendChild(btn);
+    btn.addEventListener("click", () => onSelect(opt.key));
+    wrap.appendChild(btn);
   });
+  return wrap;
+}
+function openSheet(kind){
+  const title = document.getElementById("sheet-title");
+  const body = document.getElementById("sheet-body");
+  body.innerHTML = "";
+  if (kind === "zone"){
+    title.textContent = "Zona";
+    body.appendChild(buildChipRow(zoneOptions(), state.zoneFilter, (key) => { state.zoneFilter = key; closeSheet(); render(); }));
+  } else {
+    title.textContent = "Tipo";
+    body.appendChild(buildChipRow(typeOptions(), state.typeFilter, (key) => { state.typeFilter = key; closeSheet(); render(); }));
+  }
+  document.getElementById("sheet-backdrop").classList.remove("hidden");
+  document.getElementById("sheet").classList.remove("hidden");
+}
+function closeSheet(){
+  document.getElementById("sheet-backdrop").classList.add("hidden");
+  document.getElementById("sheet").classList.add("hidden");
+}
+
+/* ---------------- DOCK LABELS ---------------- */
+function updateDockLabels(){
+  const zoneLbl = state.zoneFilter === "todos" ? "Zona" : DATA.zones[state.zoneFilter].label;
+  document.getElementById("dock-zone-label").textContent = zoneLbl;
+  document.getElementById("dock-zone").classList.toggle("active", state.zoneFilter !== "todos");
+
+  const typeLbl = state.typeFilter === "todos" ? "Tipo" : DATA.types[state.typeFilter].label;
+  document.getElementById("dock-type-label").textContent = typeLbl;
+  document.getElementById("dock-type").classList.toggle("active", state.typeFilter !== "todos");
+
+  document.getElementById("dock-sort-label").textContent = state.sortMode === "cercania" ? "Cerca" : "Prioridad";
+  document.getElementById("dock-sort-icon").textContent = state.sortMode === "cercania" ? "📍" : "⇅";
+  document.getElementById("dock-sort").classList.toggle("active", state.sortMode === "cercania");
 }
 
 /* ---------------- LIST ---------------- */
@@ -162,6 +188,10 @@ function renderList(){
     zoneBars.forEach(b => list.appendChild(renderBar(b, zones[zoneKey].color, tiers, zones[zoneKey].label, types[b.type])));
     main.appendChild(section);
   });
+
+  if (!main.children.length){
+    main.innerHTML = `<p class="mono" style="color:var(--muted); padding-top:2rem;">Nada por aquí con estos filtros.</p>`;
+  }
 }
 
 function renderBar(b, color, tiers, zoneLabel, typeInfo){
@@ -219,30 +249,20 @@ function renderBar(b, color, tiers, zoneLabel, typeInfo){
 }
 
 /* ---------------- SORT / SURPRISE ---------------- */
-function setSortStatus(msg){ document.getElementById("sort-status").textContent = msg || ""; }
-
-function initSortControls(){
-  const buttons = [...document.querySelectorAll(".sort-btn")];
-  buttons.forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const mode = btn.dataset.mode;
-      if (mode === "cercania" && !state.userLoc){
-        setSortStatus("Buscando tu ubicación…");
-        try {
-          const pos = await getLocation();
-          state.userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setSortStatus("");
-        } catch (err){
-          setSortStatus("No se pudo obtener tu ubicación — revisa los permisos del navegador.");
-          return;
-        }
-      }
-      state.sortMode = mode;
-      buttons.forEach(b => b.dataset.active = (b === btn) ? "true" : "false");
-      render();
-    });
-  });
-  document.getElementById("surprise-btn").addEventListener("click", surpriseMe);
+async function toggleSort(){
+  const next = state.sortMode === "prioridad" ? "cercania" : "prioridad";
+  if (next === "cercania" && !state.userLoc){
+    toast("Buscando tu ubicación…");
+    try {
+      const pos = await getLocation();
+      state.userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    } catch (err){
+      toast("No se pudo obtener tu ubicación");
+      return;
+    }
+  }
+  state.sortMode = next;
+  render();
 }
 
 function getLocation(){
@@ -258,7 +278,7 @@ function surpriseMe(){
     (state.zoneFilter === "todos" || b.zone === state.zoneFilter) &&
     (state.typeFilter === "todos" || b.type === state.typeFilter)
   );
-  if (!pool.length) return;
+  if (!pool.length){ toast("No hay imprescindibles con estos filtros"); return; }
   const pick = pool[Math.floor(Math.random() * pool.length)];
   if (state.zoneFilter !== "todos" && state.zoneFilter !== pick.zone) state.zoneFilter = pick.zone;
   state.expanded.add(pick.id);
@@ -295,19 +315,17 @@ function scrollToDeepLink(){
 function initTheme(){
   const saved = localStorage.getItem(THEME_KEY);
   const preferDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const theme = saved || (preferDark ? "dark" : "light");
-  applyTheme(theme);
-
-  document.getElementById("theme-toggle").addEventListener("click", () => {
-    const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
-    const next = current === "dark" ? "light" : "dark";
-    applyTheme(next);
-    localStorage.setItem(THEME_KEY, next);
-  });
+  applyTheme(saved || (preferDark ? "dark" : "light"));
 }
 function applyTheme(theme){
   document.documentElement.dataset.theme = theme;
-  document.getElementById("theme-toggle").textContent = theme === "dark" ? "☀" : "☾";
+  document.getElementById("dock-theme-icon").textContent = theme === "dark" ? "☀" : "☾";
+}
+function toggleTheme(){
+  const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  const next = current === "dark" ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem(THEME_KEY, next);
 }
 
 /* ---------------- INSTALL PROMPT ---------------- */
@@ -354,11 +372,21 @@ function initInstallBanner(){
   });
 }
 
+/* ---------------- DOCK WIRING ---------------- */
+function initDock(){
+  document.getElementById("dock-zone").addEventListener("click", () => openSheet("zone"));
+  document.getElementById("dock-type").addEventListener("click", () => openSheet("type"));
+  document.getElementById("dock-sort").addEventListener("click", toggleSort);
+  document.getElementById("dock-surprise").addEventListener("click", surpriseMe);
+  document.getElementById("dock-theme").addEventListener("click", toggleTheme);
+  document.getElementById("sheet-close").addEventListener("click", closeSheet);
+  document.getElementById("sheet-backdrop").addEventListener("click", closeSheet);
+}
+
 /* ---------------- RENDER ---------------- */
 function render(){
   renderStats();
-  renderZoneFilters();
-  renderTypeFilters();
+  updateDockLabels();
   renderList();
 }
 
@@ -367,7 +395,7 @@ function render(){
   DATA = await loadData();
   openDeepLink();
   render();
-  initSortControls();
+  initDock();
   initInstallBanner();
   scrollToDeepLink();
 })();
