@@ -1,8 +1,15 @@
-const CACHE_VERSION = "ruta-pintxo-v1";
+const CACHE_VERSION = "ruta-pintxo-v2";
 const CORE_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./css/styles.css",
+  "./js/app.js",
+  "./data/zones.json",
+  "./data/tiers.json",
+  "./data/bars.json",
+  "./data/night.json",
+  "./data/special.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
