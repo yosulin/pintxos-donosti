@@ -1,17 +1,20 @@
 const DATA_FILES = {
   zones: "data/zones.json",
+  types: "data/types.json",
   tiers: "data/tiers.json",
   bars: "data/bars.json",
 };
 
 const VISITED_KEY = "pintxos-visited";
+const THEME_KEY = "pintxos-theme";
 
 const state = {
-  filter: "todos",
+  zoneFilter: "todos",
+  typeFilter: "todos",
   sortMode: "prioridad", // "prioridad" | "cercania"
   expanded: new Set(),
   visited: new Set(JSON.parse(localStorage.getItem(VISITED_KEY) || "[]")),
-  userLoc: null, // { lat, lng }
+  userLoc: null,
 };
 
 let DATA = null;
@@ -22,7 +25,6 @@ function mapsUrl(item){
   if (item.search) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.search)}`;
   return `https://www.google.com/maps/search/?api=1&query=${item.lat},${item.lng}`;
 }
-
 function distanceKm(lat1, lng1, lat2, lng2){
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -30,17 +32,12 @@ function distanceKm(lat1, lng1, lat2, lng2){
   const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
-function formatDistance(km){
-  return km < 1 ? `${Math.round(km*1000)} m` : `${km.toFixed(1)} km`;
-}
+function formatDistance(km){ return km < 1 ? `${Math.round(km*1000)} m` : `${km.toFixed(1)} km`; }
+function saveVisited(){ localStorage.setItem(VISITED_KEY, JSON.stringify([...state.visited])); }
 
-function saveVisited(){
-  localStorage.setItem(VISITED_KEY, JSON.stringify([...state.visited]));
-}
-
-function buildShareText(b, zoneLabel){
+function buildShareText(b, zoneLabel, typeLabel){
   const lines = [
-    `📍 ${b.name} — ${zoneLabel}`,
+    `📍 ${b.name} — ${zoneLabel} · ${typeLabel}`,
     b.addr + (b.hours ? ` · ${b.hours}` : ""),
   ];
   if (b.tags && b.tags.length) lines.push(`🍢 ${b.tags.join(", ")}`);
@@ -49,9 +46,8 @@ function buildShareText(b, zoneLabel){
   lines.push(`Guía: ${location.origin}${location.pathname}#bar-${b.id}`);
   return lines.join("\n");
 }
-
-function shareToWhatsapp(b, zoneLabel){
-  const text = buildShareText(b, zoneLabel);
+function shareToWhatsapp(b, zoneLabel, typeLabel){
+  const text = buildShareText(b, zoneLabel, typeLabel);
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
 }
 
@@ -83,40 +79,60 @@ function renderStats(){
   row.innerHTML = stats.map(s => `<div class="stat"><span class="n">${s.n}</span><span class="l">${s.l}</span></div>`).join("");
 }
 
-function renderFilters(){
-  const { zones, bars } = DATA;
-  const el = document.getElementById("filters");
-  const zoneKeys = Object.keys(zones);
+function visibleBarsFor(dimension){
+  // bars matching the *other* active filter, used to compute counts per chip
+  return DATA.bars.filter(b => {
+    const zoneOk = dimension === "zone" ? true : (state.zoneFilter === "todos" || b.zone === state.zoneFilter);
+    const typeOk = dimension === "type" ? true : (state.typeFilter === "todos" || b.type === state.typeFilter);
+    return zoneOk && typeOk;
+  });
+}
+
+function renderZoneFilters(){
+  const { zones } = DATA;
+  const el = document.getElementById("filters-zone");
+  const pool = visibleBarsFor("zone");
   const options = [
-    { key:"todos", label:"Todos", count: bars.length },
-    ...zoneKeys.map(k => ({ key:k, label:zones[k].label, count: bars.filter(b=>b.zone===k).length })),
+    { key:"todos", label:"Todos", count: pool.length },
+    ...Object.keys(zones).map(k => ({ key:k, label:zones[k].label, count: pool.filter(b=>b.zone===k).length })),
   ];
   el.innerHTML = "";
   options.forEach(opt => {
     const btn = document.createElement("button");
     btn.className = "chip";
-    btn.dataset.active = state.filter === opt.key ? "true" : "false";
+    btn.dataset.active = state.zoneFilter === opt.key ? "true" : "false";
     btn.innerHTML = `${opt.label} <span class="count">${opt.count}</span>`;
-    btn.addEventListener("click", () => {
-      state.filter = opt.key;
-      render();
-    });
+    btn.addEventListener("click", () => { state.zoneFilter = opt.key; render(); });
+    el.appendChild(btn);
+  });
+}
+
+function renderTypeFilters(){
+  const { types } = DATA;
+  const el = document.getElementById("filters-type");
+  const pool = visibleBarsFor("type");
+  const options = [
+    { key:"todos", label:"Todos", count: pool.length },
+    ...Object.keys(types).map(k => ({ key:k, label:`${types[k].icon} ${types[k].label}`, count: pool.filter(b=>b.type===k).length })),
+  ];
+  el.innerHTML = "";
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.className = "chip";
+    btn.dataset.active = state.typeFilter === opt.key ? "true" : "false";
+    btn.innerHTML = `${opt.label} <span class="count">${opt.count}</span>`;
+    btn.addEventListener("click", () => { state.typeFilter = opt.key; render(); });
     el.appendChild(btn);
   });
 }
 
 /* ---------------- LIST ---------------- */
-function barSortComparator(zoneKey){
-  return (a, b) => {
-    if (state.sortMode === "cercania" && state.userLoc){
-      return a._dist - b._dist;
-    }
-    return b.tier - a.tier;
-  };
+function barSortComparator(){
+  return (a, b) => (state.sortMode === "cercania" && state.userLoc) ? a._dist - b._dist : b.tier - a.tier;
 }
 
 function renderList(){
-  const { zones, tiers, bars } = DATA;
+  const { zones, types, tiers, bars } = DATA;
   const main = document.getElementById("main");
   main.innerHTML = "";
 
@@ -125,68 +141,67 @@ function renderList(){
   }
 
   Object.keys(zones).forEach((zoneKey, i) => {
-    if (state.filter !== "todos" && state.filter !== zoneKey) return;
-    const zoneBars = bars.filter(b => b.zone === zoneKey).sort(barSortComparator(zoneKey));
+    if (state.zoneFilter !== "todos" && state.zoneFilter !== zoneKey) return;
+    const zoneBars = bars
+      .filter(b => b.zone === zoneKey)
+      .filter(b => state.typeFilter === "todos" || b.type === state.typeFilter)
+      .sort(barSortComparator());
     if (!zoneBars.length) return;
 
     const section = document.createElement("section");
-    section.style.setProperty("--zone-color", zones[zoneKey].color);
+    section.style.setProperty("--zc", zones[zoneKey].color);
     section.innerHTML = `
       <div class="zone-head">
-        <span class="zone-index mono">0${i+1}</span>
-        <h2>${zones[zoneKey].label}</h2>
-        <span class="zone-count mono">${zoneBars.length} bares</span>
+        <span class="idx">0${i+1}/</span><h2>${zones[zoneKey].label}</h2>
+        <span class="zone-count mono">${zoneBars.length}</span>
       </div>
-      <div class="zone-rule"></div>
+      <hr class="zone-line">
       <div class="bar-list"></div>
     `;
     const list = section.querySelector(".bar-list");
-    zoneBars.forEach(b => list.appendChild(renderBar(b, zones[zoneKey].color, tiers, zones[zoneKey].label)));
+    zoneBars.forEach(b => list.appendChild(renderBar(b, zones[zoneKey].color, tiers, zones[zoneKey].label, types[b.type])));
     main.appendChild(section);
   });
 }
 
-function renderBar(b, color, tiers, zoneLabel){
+function renderBar(b, color, tiers, zoneLabel, typeInfo){
   const isExpanded = state.expanded.has(b.id);
   const isVisited = state.visited.has(b.id);
   const distText = (state.userLoc && b._dist != null) ? formatDistance(b._dist) : null;
 
   const el = document.createElement("article");
-  el.className = "bar";
+  el.className = "card";
   el.id = `bar-${b.id}`;
-  el.style.setProperty("--zone-color", color);
+  el.style.setProperty("--zc", color);
   el.dataset.expanded = isExpanded ? "true" : "false";
 
   el.innerHTML = `
-    <div class="bar-header">
+    <div class="card-top">
       <button class="visited-dot" data-visited="${isVisited}" aria-label="Marcar ${b.name} como visitado" aria-pressed="${isVisited}">✓</button>
-      <div class="bar-header-main">
-        <span class="bar-name">${b.name}</span>
-        <span class="bar-sub mono">${tiers[b.tier]}${distText ? " · " + distText : ""}</span>
-      </div>
-      <span class="chevron">⌄</span>
+      <span class="type-icon" title="${typeInfo.label}">${typeInfo.icon}</span>
+      <span class="card-name">${b.name}</span>
+      <span class="stamp">${tiers[b.tier]}${distText ? " · " + distText : ""}</span>
     </div>
-    <div class="bar-body-wrap"><div class="bar-body-inner"><div class="bar-body">
-      <div class="bar-meta">${b.addr}${b.hours ? " · " + b.hours : ""}</div>
-      ${b.note ? `<div class="bar-note">${b.note}</div>` : ""}
+    <div class="card-detail">
+      <div class="card-meta">${b.addr}${b.hours ? " · " + b.hours : ""}</div>
+      ${b.note ? `<div class="card-note">${b.note}</div>` : ""}
       <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
-      <div class="bar-actions">
+      <div class="card-actions">
         <a class="maps-link" href="${mapsUrl(b)}" target="_blank" rel="noopener">Maps ↗</a>
         <button class="share-btn" type="button">WhatsApp ↗</button>
       </div>
-    </div></div></div>
+    </div>
   `;
 
-  el.querySelector(".bar-header").addEventListener("click", () => {
-    if (state.expanded.has(b.id)) state.expanded.delete(b.id);
-    else state.expanded.add(b.id);
+  el.addEventListener("click", (e) => {
+    if (e.target.closest(".visited-dot") || e.target.closest(".share-btn") || e.target.closest(".maps-link")) return;
+    state.expanded.has(b.id) ? state.expanded.delete(b.id) : state.expanded.add(b.id);
     el.dataset.expanded = state.expanded.has(b.id) ? "true" : "false";
   });
 
   el.querySelector(".visited-dot").addEventListener("click", (e) => {
     e.stopPropagation();
-    if (state.visited.has(b.id)) state.visited.delete(b.id);
-    else state.visited.add(b.id);
+    state.visited.has(b.id) ? state.visited.delete(b.id) : state.visited.add(b.id);
     saveVisited();
     renderStats();
     const dot = e.currentTarget;
@@ -197,16 +212,14 @@ function renderBar(b, color, tiers, zoneLabel){
 
   el.querySelector(".share-btn").addEventListener("click", (e) => {
     e.stopPropagation();
-    shareToWhatsapp(b, zoneLabel);
+    shareToWhatsapp(b, zoneLabel, typeInfo.label);
   });
 
   return el;
 }
 
-/* ---------------- SORT / SURPRISE CONTROLS ---------------- */
-function setSortStatus(msg){
-  document.getElementById("sort-status").textContent = msg || "";
-}
+/* ---------------- SORT / SURPRISE ---------------- */
+function setSortStatus(msg){ document.getElementById("sort-status").textContent = msg || ""; }
 
 function initSortControls(){
   const buttons = [...document.querySelectorAll(".sort-btn")];
@@ -219,7 +232,7 @@ function initSortControls(){
           const pos = await getLocation();
           state.userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           setSortStatus("");
-        } catch (err) {
+        } catch (err){
           setSortStatus("No se pudo obtener tu ubicación — revisa los permisos del navegador.");
           return;
         }
@@ -229,7 +242,6 @@ function initSortControls(){
       render();
     });
   });
-
   document.getElementById("surprise-btn").addEventListener("click", surpriseMe);
 }
 
@@ -241,15 +253,16 @@ function getLocation(){
 }
 
 function surpriseMe(){
-  const { zones, bars } = DATA;
-  const pool = bars.filter(b => b.tier === 3 && (state.filter === "todos" || b.zone === state.filter));
+  const pool = DATA.bars.filter(b =>
+    b.tier === 3 &&
+    (state.zoneFilter === "todos" || b.zone === state.zoneFilter) &&
+    (state.typeFilter === "todos" || b.type === state.typeFilter)
+  );
   if (!pool.length) return;
   const pick = pool[Math.floor(Math.random() * pool.length)];
-
-  if (state.filter !== "todos" && state.filter !== pick.zone) state.filter = pick.zone;
+  if (state.zoneFilter !== "todos" && state.zoneFilter !== pick.zone) state.zoneFilter = pick.zone;
   state.expanded.add(pick.id);
   render();
-
   requestAnimationFrame(() => {
     const el = document.getElementById(`bar-${pick.id}`);
     if (!el) return;
@@ -265,10 +278,10 @@ function openDeepLink(){
   if (!hash) return;
   const bar = DATA.bars.find(b => b.id === hash);
   if (!bar) return;
-  state.filter = "todos";
+  state.zoneFilter = "todos";
+  state.typeFilter = "todos";
   state.expanded.add(bar.id);
 }
-
 function scrollToDeepLink(){
   const hash = location.hash.replace("#bar-", "");
   if (!hash) return;
@@ -278,29 +291,37 @@ function scrollToDeepLink(){
   });
 }
 
-/* ---------------- RENDER ---------------- */
-function render(){
-  renderStats();
-  renderFilters();
-  renderList();
+/* ---------------- THEME ---------------- */
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  const preferDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = saved || (preferDark ? "dark" : "light");
+  applyTheme(theme);
+
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    const current = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    applyTheme(next);
+    localStorage.setItem(THEME_KEY, next);
+  });
+}
+function applyTheme(theme){
+  document.documentElement.dataset.theme = theme;
+  document.getElementById("theme-toggle").textContent = theme === "dark" ? "☀" : "☾";
 }
 
 /* ---------------- INSTALL PROMPT ---------------- */
 const INSTALL_DISMISSED_KEY = "pintxos-install-dismissed";
 let deferredInstallPrompt = null;
-
 function isStandalone(){
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
-
 function initInstallBanner(){
   const banner = document.getElementById("install-banner");
   const btn = document.getElementById("install-btn");
   const dismiss = document.getElementById("install-dismiss");
   const text = document.getElementById("install-text");
-
   if (isStandalone() || localStorage.getItem(INSTALL_DISMISSED_KEY) === "true") return;
-
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
   dismiss.addEventListener("click", () => {
@@ -308,7 +329,7 @@ function initInstallBanner(){
     localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
   });
 
-  if (isIOS) {
+  if (isIOS){
     text.textContent = "Instala esta guía en tu iPhone: toca compartir ⬆️ y luego \"Añadir a pantalla de inicio\".";
     banner.classList.remove("hidden");
     return;
@@ -320,7 +341,6 @@ function initInstallBanner(){
     btn.classList.remove("hidden");
     banner.classList.remove("hidden");
   });
-
   btn.addEventListener("click", async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
@@ -328,14 +348,22 @@ function initInstallBanner(){
     deferredInstallPrompt = null;
     banner.classList.add("hidden");
   });
-
   window.addEventListener("appinstalled", () => {
     banner.classList.add("hidden");
     localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
   });
 }
 
+/* ---------------- RENDER ---------------- */
+function render(){
+  renderStats();
+  renderZoneFilters();
+  renderTypeFilters();
+  renderList();
+}
+
 (async function init(){
+  initTheme();
   DATA = await loadData();
   openDeepLink();
   render();
