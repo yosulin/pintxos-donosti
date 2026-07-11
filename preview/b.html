@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview B — Fichero de bares</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eef0e6; --card:#ffffff; --line:#cfd2c4;
+    --ink:#16181c; --muted:#6d7269;
+    --red:#c33a1d; --teal:#2f6e5c; --mustard:#b8860f;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'Inter',sans-serif; font-size:17px; line-height:1.6; }
+  .mono{ font-family:'Space Mono',monospace; }
+
+  .tag-label{
+    text-align:center; font-family:'Space Mono',monospace; font-size:.72rem; letter-spacing:.06em;
+    color:#fff; background:var(--ink); padding:.4rem; text-transform:uppercase;
+  }
+
+  header{ padding:2.2rem 1.2rem 1.2rem; max-width:38rem; margin:0 auto; }
+  .eyebrow{ font-family:'Space Mono',monospace; font-size:.74rem; letter-spacing:.05em; color:var(--red); text-transform:uppercase; }
+  h1{ font-family:'Space Mono',monospace; font-weight:700; font-size:clamp(1.9rem,9vw,2.5rem); margin:.6rem 0 0; line-height:1.15; }
+  .lede{ color:var(--muted); margin-top:.8rem; font-size:1rem; max-width:30rem; }
+
+  .density{
+    max-width:38rem; margin:1.5rem auto 0; padding:0 1.2rem; display:flex; gap:0; border:1.5px solid var(--ink); border-radius:6px; width:fit-content;
+  }
+  .dbtn{
+    font-family:'Space Mono',monospace; font-size:.8rem; padding:.5rem 1rem; cursor:pointer;
+    background:transparent; color:var(--ink); border:none;
+  }
+  .dbtn + .dbtn{ border-left:1.5px solid var(--ink); }
+  .dbtn[data-active="true"]{ background:var(--ink); color:var(--paper); font-weight:700; }
+
+  main{ max-width:38rem; margin:0 auto; padding:1.6rem 1.2rem 3rem; }
+  .zone{ margin-top:2rem; }
+  .zone-head{ display:flex; align-items:baseline; gap:.6rem; font-family:'Space Mono',monospace; }
+  .zone-head .idx{ color:var(--zc); font-weight:700; }
+  .zone-head h2{ font-size:1.2rem; font-weight:700; margin:0; text-transform:uppercase; letter-spacing:.03em; }
+  .zone-line{ border:none; border-top:3px solid var(--zc); margin:.5rem 0 1rem; width:2.4rem; }
+
+  .card{
+    background:var(--card); border:1.5px solid var(--line); border-radius:4px; margin-bottom:.8rem;
+    padding:.9rem 1rem; cursor:pointer; position:relative; overflow:hidden;
+  }
+  .card::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--zc); }
+  .card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:.7rem; padding-left:.5rem; }
+  .card-name{ font-family:'Space Mono',monospace; font-weight:700; font-size:1.05rem; }
+  .stamp{
+    font-family:'Space Mono',monospace; font-size:.68rem; text-transform:uppercase; color:var(--zc);
+    border:1.5px solid var(--zc); border-radius:4px; padding:.2rem .45rem; transform:rotate(-3deg); white-space:nowrap; flex:0 0 auto;
+  }
+
+  .card-detail{ display:none; padding-left:.5rem; margin-top:.7rem; border-top:1px dashed var(--line); padding-top:.7rem; }
+  .card[data-expanded="true"] .card-detail{ display:block; }
+  body.density-full .card-detail{ display:block; }
+
+  .card-meta{ font-family:'Space Mono',monospace; font-size:.8rem; color:var(--muted); line-height:1.6; }
+  .card-note{ font-size:.94rem; color:var(--zc); font-style:italic; margin-top:.4rem; }
+  .tags{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+  .tag{ font-size:.78rem; padding:.26rem .6rem; background:var(--paper); border:1px solid var(--line); border-radius:3px; }
+  .maps{ display:inline-block; margin-top:.7rem; font-family:'Space Mono',monospace; font-size:.8rem; color:var(--zc); border-bottom:1.5px solid var(--zc); text-decoration:none; padding-bottom:1px; font-weight:700; }
+</style>
+</head>
+<body class="density-compact">
+
+<div class="tag-label">preview b — no es la web final, solo para comparar estilos</div>
+
+<header>
+  <span class="eyebrow">Donostia — guía de pintxos</span>
+  <h1>LA RUTA DEL PINTXO</h1>
+  <p class="lede">Mis bares favoritos, ordenados por prioridad — con las especialidades que pido siempre.</p>
+</header>
+
+<div class="density">
+  <button class="dbtn" data-mode="compact" data-active="true">Lista</button>
+  <button class="dbtn" data-mode="full" data-active="false">Ficha</button>
+</div>
+
+<main id="main"></main>
+
+<script>
+const ZONES = { antiguo:{label:"Parte Vieja",color:"#c33a1d"}, centro:{label:"Centro",color:"#2f6e5c"}, gros:{label:"Gros",color:"#b8860f"} };
+const TIERS = {3:"Imprescindible",2:"Recomendado",1:"Si hay tiempo"};
+const BARS = [
+  { id:"txepetxa", zone:"antiguo", tier:3, name:"Bar Txepetxa", addr:"Arrandegi Kalea, 5", hours:"Mar–sáb 12:00–15:00 y 19:00–23:00",
+    tags:["Anchoas","Jardinera","Centolla","Foie con manzana"], note:"Maridar con txakoli sin falta", maps:"https://maps.google.com" },
+  { id:"casaurola", zone:"antiguo", tier:3, name:"Casa Urola", addr:"Fermín Calbetón, 20", hours:"Jue–dom 12:00–15:15 y 19:00–23:15",
+    tags:["Brocheta de pulpo","Vieira","Taco de solomillo","Foie fresco"], note:"", maps:"https://maps.google.com" },
+  { id:"bordaberri", zone:"antiguo", tier:2, name:"Borda Berri", addr:"Fermín Calbetón, 12", hours:"Mié–sáb 12:30–15:15 y 19:30–22:30",
+    tags:["Falso risotto","Papada al vino tinto","Kebab","Carrilleras"], note:"", maps:"https://maps.google.com" },
+  { id:"lavina", zone:"antiguo", tier:2, name:"Bar La Viña", addr:"31 de Agosto, 3", hours:"Mar–dom 10:30–16:00 y 19:00–23:00",
+    tags:["Tarta de queso"], note:"El postre imprescindible de Donosti", maps:"https://maps.google.com" },
+  { id:"antonio", zone:"centro", tier:3, name:"Bar Antonio", addr:"Calle Bergara, 3", hours:"Lun–sáb 9:00–23:00",
+    tags:["Tortilla de patatas","Ravioli de langostino","Pintxo Arzak"], note:"El mítico — mejor que el del Boulevard", maps:"https://maps.google.com" },
+  { id:"guretxoko", zone:"gros", tier:3, name:"El Gure Txoko", addr:"Calle Usandizaga, 5", hours:"Mar–sáb 12:00–16:00 y 19:00–23:30",
+    tags:["Bocatita de merluza","Bocatita de rabas","Cangreburger"], note:"", maps:"https://maps.google.com" },
+];
+
+const main = document.getElementById("main");
+let n = 0;
+Object.keys(ZONES).forEach(zk => {
+  const zoneBars = BARS.filter(b => b.zone === zk);
+  if (!zoneBars.length) return;
+  n++;
+  const section = document.createElement("section");
+  section.className = "zone";
+  section.style.setProperty("--zc", ZONES[zk].color);
+  section.innerHTML = `
+    <div class="zone-head"><span class="idx">0${n}/</span><h2>${ZONES[zk].label}</h2></div>
+    <hr class="zone-line">
+  `;
+  zoneBars.forEach(b => {
+    const el = document.createElement("article");
+    el.className = "card"; el.dataset.expanded = "false";
+    el.style.setProperty("--zc", ZONES[zk].color);
+    el.innerHTML = `
+      <div class="card-top">
+        <span class="card-name">${b.name}</span>
+        <span class="stamp">${TIERS[b.tier]}</span>
+      </div>
+      <div class="card-detail">
+        <div class="card-meta">${b.addr} · ${b.hours}</div>
+        ${b.note ? `<div class="card-note">${b.note}</div>` : ""}
+        <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+        <a class="maps" href="${b.maps}" target="_blank">Maps ↗</a>
+      </div>
+    `;
+    el.addEventListener("click", () => { el.dataset.expanded = el.dataset.expanded === "true" ? "false" : "true"; });
+    section.appendChild(el);
+  });
+  main.appendChild(section);
+});
+
+document.querySelectorAll(".dbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".dbtn").forEach(b => b.dataset.active = "false");
+    btn.dataset.active = "true";
+    document.body.className = btn.dataset.mode === "full" ? "density-full" : "density-compact";
+  });
+});
+</script>
+</body>
+</html>
