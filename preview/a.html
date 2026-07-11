@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview A — Pizarra de barra</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#20241f; --raised:#282d23; --line:#3a4034;
+    --chalk:#eef0e8; --chalk-dim:#a7ab99;
+    --yellow:#e8c468; --teal:#8fb3a3; --orange:#e29a5a;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--chalk); font-family:'Inter',sans-serif; font-size:17px; line-height:1.6; }
+  .mono{ font-family:'JetBrains Mono',monospace; }
+  h1,h2{ font-family:'Bricolage Grotesque',sans-serif; margin:0; }
+
+  .tag-label{
+    text-align:center; font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.1em;
+    color:var(--bg); background:var(--yellow); padding:.4rem; text-transform:uppercase;
+  }
+
+  header{ padding:2.4rem 1.2rem 1.4rem; max-width:38rem; margin:0 auto; }
+  .eyebrow{ font-family:'JetBrains Mono',monospace; font-size:.76rem; letter-spacing:.14em; text-transform:uppercase; color:var(--yellow); }
+  h1{ font-size:clamp(2.1rem,10vw,2.8rem); font-weight:800; margin-top:.6rem; line-height:1.05; text-transform:uppercase; letter-spacing:-0.01em; }
+  h1 .u{ text-decoration:underline; text-decoration-style:wavy; text-decoration-color:var(--yellow); text-underline-offset:6px; }
+  .lede{ color:var(--chalk-dim); margin-top:.8rem; font-size:1rem; max-width:30rem; }
+
+  .density{
+    max-width:38rem; margin:1.6rem auto 0; padding:0 1.2rem; display:flex; gap:.6rem; align-items:center;
+  }
+  .density span.lbl{ font-family:'JetBrains Mono',monospace; font-size:.74rem; color:var(--chalk-dim); text-transform:uppercase; letter-spacing:.08em; }
+  .dbtn{
+    font-family:'JetBrains Mono',monospace; font-size:.82rem; padding:.5rem .9rem; cursor:pointer;
+    background:transparent; color:var(--chalk-dim); border:1.5px dashed var(--line); border-radius:6px;
+  }
+  .dbtn[data-active="true"]{ color:var(--bg); background:var(--yellow); border-color:var(--yellow); border-style:solid; font-weight:600; }
+
+  main{ max-width:38rem; margin:0 auto; padding:1.8rem 1.2rem 3rem; }
+  .zone{ margin-top:2.2rem; }
+  .zone-head{ display:flex; align-items:center; gap:.7rem; }
+  .zone-num{
+    width:30px; height:30px; border-radius:50%; border:2px solid var(--zc); color:var(--zc);
+    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-size:.82rem; font-weight:600;
+    transform:rotate(-3deg);
+  }
+  .zone-head h2{ font-size:1.35rem; font-weight:600; }
+  .zone-rule{ border:none; border-top:2px dashed var(--line); margin:.9rem 0 .2rem; }
+
+  .bar{ padding:1rem 0; border-bottom:1px solid var(--line); cursor:pointer; }
+  .bar:last-child{ border-bottom:none; }
+  .bar-row{ display:flex; align-items:center; gap:.8rem; }
+  .dots{ display:flex; gap:3px; flex:0 0 auto; }
+  .dots span{ width:7px; height:7px; border-radius:50%; background:var(--line); }
+  .dots span.on{ background:var(--zc); }
+  .bar-name{ font-family:'Bricolage Grotesque',sans-serif; font-weight:600; font-size:1.12rem; flex:1 1 auto; }
+  .arrow{ color:var(--chalk-dim); font-size:.9rem; transition:transform .2s ease; }
+  .bar[data-expanded="true"] .arrow{ transform:rotate(90deg); color:var(--zc); }
+
+  .bar-detail{ display:none; margin-top:.7rem; padding-left:1.35rem; }
+  .bar[data-expanded="true"] .bar-detail{ display:block; }
+  body.density-full .bar-detail{ display:block; }
+
+  .bar-meta{ font-family:'JetBrains Mono',monospace; font-size:.83rem; color:var(--chalk-dim); line-height:1.6; }
+  .bar-note{ font-size:.95rem; color:var(--zc); font-style:italic; margin-top:.4rem; }
+  .tags{ display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.6rem; }
+  .tag{ font-size:.8rem; padding:.28rem .65rem; border:1px solid var(--line); border-radius:5px; color:var(--chalk); }
+  .maps{ display:inline-block; margin-top:.7rem; font-family:'JetBrains Mono',monospace; font-size:.82rem; color:var(--zc); border-bottom:1px solid var(--zc); text-decoration:none; padding-bottom:1px; }
+</style>
+</head>
+<body class="density-compact">
+
+<div class="tag-label">preview a — no es la web final, solo para comparar estilos</div>
+
+<header>
+  <span class="eyebrow">Donostia · guía de pintxos</span>
+  <h1>La ruta<br>del <span class="u">pintxo</span></h1>
+  <p class="lede">Mis bares favoritos, ordenados por prioridad — con las especialidades que pido siempre.</p>
+</header>
+
+<div class="density">
+  <span class="lbl">Ver:</span>
+  <button class="dbtn" data-mode="compact" data-active="true">Compacto</button>
+  <button class="dbtn" data-mode="full" data-active="false">Completo</button>
+</div>
+
+<main id="main"></main>
+
+<script>
+const ZONES = { antiguo:{label:"Parte Vieja",color:"#e8c468"}, centro:{label:"Centro",color:"#8fb3a3"}, gros:{label:"Gros",color:"#e29a5a"} };
+const TIERS = {3:"Imprescindible",2:"Recomendado",1:"Si hay tiempo"};
+const BARS = [
+  { id:"txepetxa", zone:"antiguo", tier:3, name:"Bar Txepetxa", addr:"Arrandegi Kalea, 5", hours:"Mar–sáb 12:00–15:00 y 19:00–23:00",
+    tags:["Anchoas","Jardinera","Centolla","Foie con manzana"], note:"Maridar con txakoli sin falta", maps:"https://maps.google.com" },
+  { id:"casaurola", zone:"antiguo", tier:3, name:"Casa Urola", addr:"Fermín Calbetón, 20", hours:"Jue–dom 12:00–15:15 y 19:00–23:15",
+    tags:["Brocheta de pulpo","Vieira","Taco de solomillo","Foie fresco"], note:"", maps:"https://maps.google.com" },
+  { id:"bordaberri", zone:"antiguo", tier:2, name:"Borda Berri", addr:"Fermín Calbetón, 12", hours:"Mié–sáb 12:30–15:15 y 19:30–22:30",
+    tags:["Falso risotto","Papada al vino tinto","Kebab","Carrilleras"], note:"", maps:"https://maps.google.com" },
+  { id:"lavina", zone:"antiguo", tier:2, name:"Bar La Viña", addr:"31 de Agosto, 3", hours:"Mar–dom 10:30–16:00 y 19:00–23:00",
+    tags:["Tarta de queso"], note:"El postre imprescindible de Donosti", maps:"https://maps.google.com" },
+  { id:"antonio", zone:"centro", tier:3, name:"Bar Antonio", addr:"Calle Bergara, 3", hours:"Lun–sáb 9:00–23:00",
+    tags:["Tortilla de patatas","Ravioli de langostino","Pintxo Arzak"], note:"El mítico — mejor que el del Boulevard", maps:"https://maps.google.com" },
+  { id:"guretxoko", zone:"gros", tier:3, name:"El Gure Txoko", addr:"Calle Usandizaga, 5", hours:"Mar–sáb 12:00–16:00 y 19:00–23:30",
+    tags:["Bocatita de merluza","Bocatita de rabas","Cangreburger"], note:"", maps:"https://maps.google.com" },
+];
+
+const main = document.getElementById("main");
+let n = 0;
+Object.keys(ZONES).forEach(zk => {
+  const zoneBars = BARS.filter(b => b.zone === zk);
+  if (!zoneBars.length) return;
+  n++;
+  const section = document.createElement("section");
+  section.className = "zone";
+  section.style.setProperty("--zc", ZONES[zk].color);
+  section.innerHTML = `
+    <div class="zone-head">
+      <span class="zone-num">0${n}</span>
+      <h2>${ZONES[zk].label}</h2>
+    </div>
+    <hr class="zone-rule">
+  `;
+  zoneBars.forEach(b => {
+    const dotCount = b.tier;
+    const el = document.createElement("article");
+    el.className = "bar"; el.dataset.expanded = "false";
+    el.style.setProperty("--zc", ZONES[zk].color);
+    el.innerHTML = `
+      <div class="bar-row">
+        <div class="dots">${[1,2,3].map(i=>`<span class="${i<=dotCount?'on':''}"></span>`).join("")}</div>
+        <span class="bar-name">${b.name}</span>
+        <span class="arrow">→</span>
+      </div>
+      <div class="bar-detail">
+        <div class="bar-meta">${b.addr} · ${b.hours}</div>
+        ${b.note ? `<div class="bar-note">${b.note}</div>` : ""}
+        <div class="tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+        <a class="maps" href="${b.maps}" target="_blank">Maps ↗</a>
+      </div>
+    `;
+    el.addEventListener("click", () => { el.dataset.expanded = el.dataset.expanded === "true" ? "false" : "true"; });
+    section.appendChild(el);
+  });
+  main.appendChild(section);
+});
+
+document.querySelectorAll(".dbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".dbtn").forEach(b => b.dataset.active = "false");
+    btn.dataset.active = "true";
+    document.body.className = btn.dataset.mode === "full" ? "density-full" : "density-compact";
+  });
+});
+</script>
+</body>
+</html>
