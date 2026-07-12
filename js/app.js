@@ -37,13 +37,15 @@ function saveVisited(){ localStorage.setItem(VISITED_KEY, JSON.stringify([...sta
 
 function buildShareText(b, zoneLabel, typeLabel){
   const lines = [
-    `📍 ${b.name} — ${zoneLabel} · ${typeLabel}`,
-    b.addr + (b.hours ? ` · ${b.hours}` : ""),
+    `${b.name}`,
+    `📍 ${b.addr}`,
   ];
+  if (b.hours) lines.push(`🕒 ${b.hours}`);
   if (b.tags && b.tags.length) lines.push(`🍢 ${b.tags.join(", ")}`);
-  if (b.note) lines.push(b.note);
+  if (b.note) lines.push(`💬 ${b.note}`);
+  lines.push(`${zoneLabel} · ${typeLabel}`);
+  lines.push("");
   lines.push(`Mapa: ${mapsUrl(b)}`);
-  lines.push(`Guía: ${location.origin}${location.pathname}#bar-${b.id}`);
   return lines.join("\n");
 }
 function shareToWhatsapp(b, zoneLabel, typeLabel){
