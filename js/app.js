@@ -331,22 +331,29 @@ function toggleTheme(){
 }
 
 /* ---------------- INSTALL PROMPT ---------------- */
-const INSTALL_DISMISSED_KEY = "pintxos-install-dismissed";
+const INSTALL_DISMISSED_KEY = "pintxos-install-dismissed-until";
 let deferredInstallPrompt = null;
 function isStandalone(){
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+function isInstallDismissed(){
+  const until = parseInt(localStorage.getItem(INSTALL_DISMISSED_KEY) || "0", 10);
+  return Date.now() < until;
+}
+function dismissInstallFor(days){
+  localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now() + days * 24 * 60 * 60 * 1000));
 }
 function initInstallBanner(){
   const banner = document.getElementById("install-banner");
   const btn = document.getElementById("install-btn");
   const dismiss = document.getElementById("install-dismiss");
   const text = document.getElementById("install-text");
-  if (isStandalone() || localStorage.getItem(INSTALL_DISMISSED_KEY) === "true") return;
+  if (isStandalone() || isInstallDismissed()) return;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
 
   dismiss.addEventListener("click", () => {
     banner.classList.add("hidden");
-    localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+    dismissInstallFor(7);
   });
 
   if (isIOS){
@@ -364,13 +371,14 @@ function initInstallBanner(){
   btn.addEventListener("click", async () => {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
+    const choice = await deferredInstallPrompt.userChoice;
     deferredInstallPrompt = null;
     banner.classList.add("hidden");
+    if (choice.outcome !== "accepted") dismissInstallFor(3);
   });
   window.addEventListener("appinstalled", () => {
     banner.classList.add("hidden");
-    localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+    dismissInstallFor(3650);
   });
 }
 
